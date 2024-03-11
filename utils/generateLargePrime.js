@@ -55,12 +55,16 @@ function millerRabinTest(n, d) {
 // Function to perform modular exponentiation (a^b mod m)
 function modExp(base, exponent, modulus) {
   let result = 1n;
+  exponent = BigInt(exponent);
+  base = BigInt(base);
+  modulus = BigInt(modulus);
   while (exponent > 0n) {
     if (exponent % 2n === 1n) {
+      // Make sure exponent is BigInt
       result = (result * base) % modulus;
     }
     base = (base * base) % modulus;
-    exponent = exponent / 2n;
+    exponent = exponent / 2n; // Ensure exponent is BigInt
   }
   return result;
 }
@@ -91,7 +95,7 @@ do {
 // Step 5: Find the corresponding private key d such that (e * d) mod Phi(N) = 1
 const d = modInverse(e, phi);
 
-// Step 6: Publish the public key (N, e) on the designated database
+// Step 6: Output the public key (N, e) to be published
 console.log("Public key (N, e):", `(${n}, ${e})`);
 console.log("Private key (N, d):", `(${n}, ${d})`);
 
@@ -115,3 +119,37 @@ function modInverse(a, m) {
   }
   return x1 < 0n ? x1 + m0 : x1;
 }
+
+// Function to encrypt a message using RSA
+function encryptMessage(message, publicKey) {
+  const [N, e] = publicKey;
+  const blockSize = getBlockSize(N);
+  const encryptedChunks = [];
+
+  // Split the message into blocks of appropriate size
+  for (let i = 0; i < message.length; i += blockSize) {
+    const block = message.slice(i, i + blockSize);
+    // Convert the block to BigInt
+    const m = BigInt("0x" + Buffer.from(block).toString("hex"));
+    // Encrypt the block using modular exponentiation
+    const c = modExp(m, e, N);
+    encryptedChunks.push(c.toString());
+  }
+
+  return encryptedChunks;
+}
+
+// Function to determine the block size based on the modulus N
+function getBlockSize(N) {
+  // Determine the number of bytes required to represent N
+  const numBytes = Math.ceil(N.toString(16).length / 2);
+  // Block size should be such that each block is smaller than N
+  // Adjusting to ensure padding can be added if needed
+  return Math.floor((numBytes - 1) * 0.75);
+}
+
+// Example usage:
+const partnerPublicKey = [2814796069, 12814796069]; // Obtain partner's public key from Moodle
+const message = "Here is the encrypted message"; // Your message to be encrypted
+const encryptedMessage = encryptMessage(message, partnerPublicKey);
+console.log("Encrypted Message:", encryptedMessage);
