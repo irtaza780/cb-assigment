@@ -117,7 +117,14 @@ function encryptMessage(message, publicKey) {
     const c = modExp(m, e, N);
     encryptedChunks.push(c.toString());
 
-    console.log("Block:", block, "BigInt:", m.toString(), "Encrypted:", c.toString());
+    console.log(
+      "Block:",
+      block,
+      "BigInt:",
+      m.toString(),
+      "Encrypted:",
+      c.toString()
+    );
   }
 
   return encryptedChunks;
@@ -133,7 +140,8 @@ function signMessage(message, privateKey) {
   for (let i = 0; i < message.length; i += blockSize) {
     const block = message.slice(i, i + blockSize);
     const m = BigInt("0x" + Buffer.from(block).toString("hex"));
-    const sig = modExp(m, d, N);
+    let sig = modExp(m, d, N);
+
     signedChunks.push(sig.toString());
 
     console.log("Signing Block:", block, "Signature:", sig.toString());
@@ -151,11 +159,22 @@ function verifySignature(signature, publicKey, originalMessage) {
   for (let i = 0; i < signature.length; i++) {
     const sigChunk = BigInt(signature[i]);
     const decryptedChunk = modExp(sigChunk, e, N);
-    const decryptedBytes = Buffer.from(decryptedChunk.toString(16), "hex").toString();
+    const decryptedBytes = Buffer.from(
+      decryptedChunk.toString(16),
+      "hex"
+    ).toString();
 
-    console.log("Verifying Signature:", sigChunk.toString(), "Decrypted:", decryptedBytes);
+    console.log(
+      "Verifying Signature:",
+      sigChunk.toString(),
+      "Decrypted:",
+      decryptedBytes
+    );
 
-    if (decryptedBytes !== originalMessage.slice(i * blockSize, (i + 1) * blockSize)) {
+    if (
+      decryptedBytes !==
+      originalMessage.slice(i * blockSize, (i + 1) * blockSize)
+    ) {
       verified = false;
       break;
     }
@@ -175,18 +194,23 @@ function decryptMessage(encryptedMessage, privateKey) {
     const decryptedHex = decryptedChunk.toString(16);
     const decryptedBytes = hexToAscii(decryptedHex);
 
-    console.log("Decrypting:", encryptedChunk.toString(), "To:", decryptedBytes);
+    console.log(
+      "Decrypting:",
+      encryptedChunk.toString(),
+      "To:",
+      decryptedBytes
+    );
 
     decryptedBlocks.push(decryptedBytes);
   }
 
-  return decryptedBlocks.join('');
+  return decryptedBlocks.join("");
 }
 
 // Function to convert hexadecimal string to ASCII string
 function hexToAscii(hexString) {
   if (hexString.length % 2 !== 0) hexString = "0" + hexString;
-  let asciiString = '';
+  let asciiString = "";
   for (let i = 0; i < hexString.length; i += 2) {
     const hexCharCode = parseInt(hexString.substr(i, 2), 16);
     asciiString += String.fromCharCode(hexCharCode);
@@ -208,11 +232,24 @@ const d = modInverse(e, phi);
 console.log("Public key (N, e):", `(${n}, ${e})`);
 console.log("Private key (N, d):", `(${n}, ${d})`);
 
-const partnerPublicKey = [n, e]; // Use the generated public key
+// const partnerPublicKey = [BigInt(167099789), BigInt(137588203)]; // Use the generated public key
+
+const partnerPublicKey = [n, e];
 const message = "Hello World";
 
-const encryptedMessage = encryptMessage(message, partnerPublicKey);
+let encryptedMessage = encryptMessage(message, partnerPublicKey);
 console.log("Encrypted Message:", encryptedMessage);
+
+// encryptedMessage = [44148581, 26085796, 13528540, 1563548, 1710080, 145671008];
 
 const decryptedMessage = decryptMessage(encryptedMessage, [n, d]);
 console.log("Decrypted Message:", decryptedMessage);
+
+const privateKey = [n, e];
+
+// Sign the message using your private key
+const signature = signMessage(message, privateKey);
+console.log("Your signature:", signature);
+
+const isVerified = verifySignature(signature, partnerPublicKey, message);
+console.log("Is signature verified?", isVerified);
