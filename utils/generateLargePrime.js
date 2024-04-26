@@ -153,37 +153,46 @@ function signMessage(message, privateKey) {
 // Function to verify a signature using RSA
 function verifySignature(signature, publicKey, originalMessage) {
   const [N, e] = publicKey;
-  const blockSize = getBlockSize(N);
+
   let verified = true;
+  let offset = 0; // Track offset in original message
 
   for (let i = 0; i < signature.length; i++) {
     const sigChunk = BigInt(signature[i]);
     const decryptedChunk = modExp(sigChunk, e, N);
-    const decryptedBytes = Buffer.from(
-      decryptedChunk.toString(16),
-      "hex"
-    ).toString();
+
+    const blockSize = getBlockSize(N);
+
+    // Convert to hexadecimal with proper padding for comparison
+    const decryptedHex = decryptedChunk.toString(16).padStart(blockSize * 2, '0');
+    const originalBlockHex = Buffer.from(
+      originalMessage.slice(offset, offset + blockSize),
+      "utf-8"
+    ).toString("hex").padStart(blockSize * 2, '0');
 
     console.log(
       "Verifying Signature:",
       sigChunk.toString(),
-      "Decrypted:",
-      decryptedBytes
+      "Decrypted Hex:",
+      decryptedHex,
+      "Original Block Hex:",
+      originalBlockHex
     );
 
-    if (
-      decryptedBytes !==
-      originalMessage.slice(i * blockSize, (i + 1) * blockSize)
-    ) {
+    if (decryptedHex !== originalBlockHex) {
       verified = false;
       break;
     }
+    offset += blockSize;
   }
 
   return verified;
 }
 
+
+
 // Function to decrypt a message using RSA
+
 function decryptMessage(encryptedMessage, privateKey) {
   const [N, d] = privateKey;
   const decryptedBlocks = [];
@@ -197,7 +206,11 @@ function decryptMessage(encryptedMessage, privateKey) {
     console.log(
       "Decrypting:",
       encryptedChunk.toString(),
-      "To:",
+      "Decrypted Hex:",
+      decryptedHex,
+      "Original Block:",
+      Buffer.from(decryptedBytes, "utf-8").toString("hex"),
+      "Decrypted ASCII:",
       decryptedBytes
     );
 
@@ -235,7 +248,7 @@ console.log("Private key (N, d):", `(${n}, ${d})`);
 // const partnerPublicKey = [BigInt(167099789), BigInt(137588203)]; // Use the generated public key
 
 const partnerPublicKey = [n, e];
-const message = "Hello World";
+const message = "ZOHA";
 
 let encryptedMessage = encryptMessage(message, partnerPublicKey);
 console.log("Encrypted Message:", encryptedMessage);
@@ -245,7 +258,7 @@ console.log("Encrypted Message:", encryptedMessage);
 const decryptedMessage = decryptMessage(encryptedMessage, [n, d]);
 console.log("Decrypted Message:", decryptedMessage);
 
-const privateKey = [n, e];
+const privateKey = [n, d];
 
 // Sign the message using your private key
 const signature = signMessage(message, privateKey);
